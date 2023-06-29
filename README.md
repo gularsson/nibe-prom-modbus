@@ -22,3 +22,5 @@ Metrics should then be exposed for use in Grafana under the prefix `nibe`
 * Learn Go
 * Add more Metrics
 * Dockerize
+
+[Nibe modbus documentation](https://www.nibe.eu/download/18.3db69dc1795e0d992c5722/1622634529178/Modbus%20S-series%20EN%20M12676EN-1.pdf).
