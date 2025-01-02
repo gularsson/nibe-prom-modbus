@@ -2,7 +2,9 @@ package main
 
 import (
 	"encoding/binary"
+	"flag"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -12,24 +14,31 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+var (
+	host string
+	port string
+	path string
+)
+
 type Register struct {
-	Address uint16
+	Mode    string
 	Type    string
 	Unit    string
-	Factor  float32
-	Mode    string
 	Name    string
 	Desc    string
+	Factor  float32
+	Address uint16
 }
 
 const prefix = "nibe"
 
-var registers = [5]Register{
+var registers = [6]Register{
 	{Address: 1, Type: "u16", Unit: "°C", Factor: 10, Mode: "r", Desc: "Outdoor temperature", Name: fmt.Sprintf("%s_outdoor_temperature", prefix)},
 	{Address: 5, Type: "u16", Unit: "°C", Factor: 10, Mode: "r", Desc: "Supply temperature", Name: fmt.Sprintf("%s_supply_temperature", prefix)},
 	{Address: 7, Type: "u16", Unit: "°C", Factor: 10, Mode: "r", Desc: "Return temperature", Name: fmt.Sprintf("%s_return_temperature", prefix)},
 	{Address: 8, Type: "u16", Unit: "°C", Factor: 10, Mode: "r", Desc: "Hot water top", Name: fmt.Sprintf("%s_hotwater_temperature", prefix)},
 	{Address: 9, Type: "u16", Unit: "°C", Factor: 10, Mode: "r", Desc: "Hot water charging", Name: fmt.Sprintf("%s_hotwater_charging", prefix)},
+	{Address: 2166, Type: "u32", Unit: "W", Factor: 10, Mode: "r", Desc: "Power usage", Name: fmt.Sprintf("%s_power_usage", prefix)},
 }
 
 var outdoorTemperature = promauto.NewGauge(prometheus.GaugeOpts{
@@ -57,6 +66,11 @@ var hotWaterCharging = promauto.NewGauge(prometheus.GaugeOpts{
 	Help: "Hot water charging",
 })
 
+var powerUsage = promauto.NewGauge(prometheus.GaugeOpts{
+	Name: "nibe_power_usage",
+	Help: "Power usage",
+})
+
 func getData(client modbus.Client, reg Register) float64 {
 	result, err := client.ReadInputRegisters(reg.Address, 1)
 	if err != nil {
@@ -78,9 +92,24 @@ func recordMetrics(client modbus.Client) {
 	}()
 }
 
+func init() {
+	flag.StringVar(&host, "host", "0.0.0.0", "Heat pump host, assumes port 502")
+	flag.StringVar(&port, "port", "2112", "Metrics port, default 2112")
+	flag.StringVar(&path, "path", "/metrics", "Metrics path, default /metrics")
+}
+
 func main() {
-	client := modbus.TCPClient("192.168.1.81:502")
+	flag.Parse()
+
+	resourceAddress := fmt.Sprintf("%s:502", host)
+	servePort := fmt.Sprintf(":%s", port)
+
+	client := modbus.TCPClient(resourceAddress)
 	recordMetrics(client)
-	http.Handle("/metrics", promhttp.Handler())
-	http.ListenAndServe(":2112", nil)
+
+	http.Handle(path, promhttp.Handler())
+
+	if err := http.ListenAndServe(servePort, nil); err != nil {
+		slog.Error("Could not start server: %s", err)
+	}
 }
