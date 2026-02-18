@@ -117,7 +117,7 @@ func main() {
 		{Address: 5, Type: "s16", Unit: "°C", Factor: 10, Mode: "r", Desc: "Supply temperature in °C", Name: "supply_temperature"},
 		{Address: 7, Type: "s16", Unit: "°C", Factor: 10, Mode: "r", Desc: "Return temperature in °C", Name: "return_temperature"},
 		{Address: 8, Type: "u16", Unit: "°C", Factor: 10, Mode: "r", Desc: "Hot water top in °C", Name: "hotwater_temperature"},
-		{Address: 9, Type: "u16", Unit: "°C", Factor: 10, Mode: "r", Desc: "Hot water charging in °C", Name: "hotwater_charging"},
+		{Address: 9, Type: "u16", Unit: "°C", Factor: 10, Mode: "r", Desc: "Hot water charging temperature in °C", Name: "hotwater_charging_temperature"},
 		{Address: 2166, Type: "u32", Unit: "W", Factor: 10, Mode: "r", Desc: "Power usage in Watt", Name: "power_usage"},
 	}
 
