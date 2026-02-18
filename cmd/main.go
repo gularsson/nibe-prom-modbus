@@ -67,9 +67,11 @@ func getData(client modbus.Client, reg Register) (float64, error) {
 	return value / reg.Factor, nil
 }
 
-func recordMetrics(ctx context.Context, client modbus.Client, registers []Register, metrics map[string]prometheus.Gauge) {
+func recordMetrics(ctx context.Context, handler *modbus.TCPClientHandler, registers []Register, metrics map[string]prometheus.Gauge) {
 	ticker := time.NewTicker(time.Duration(interval) * time.Second)
 	defer ticker.Stop()
+
+	client := modbus.NewClient(handler)
 
 	for {
 		for _, reg := range registers {
@@ -77,7 +79,11 @@ func recordMetrics(ctx context.Context, client modbus.Client, registers []Regist
 				value, err := getData(client, reg)
 				if err != nil {
 					slog.Error("failed to read register", "register", reg.Name, "err", err)
-					continue
+					handler.Close()
+					if err := handler.Connect(); err != nil {
+						slog.Error("failed to reconnect", "err", err)
+					}
+					break
 				}
 				gauge.Set(value)
 			} else {
@@ -123,11 +129,15 @@ func main() {
 		})
 	}
 
+	handler := modbus.NewTCPClientHandler(resourceAddress)
+	handler.Timeout = 10 * time.Second
+	handler.SlaveId = 1
+	defer handler.Close()
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	client := modbus.TCPClient(resourceAddress)
-	go recordMetrics(ctx, client, registers, metrics)
+	go recordMetrics(ctx, handler, registers, metrics)
 
 	http.Handle(path, promhttp.Handler())
 
