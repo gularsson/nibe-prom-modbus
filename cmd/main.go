@@ -113,12 +113,12 @@ func main() {
 	servePort := fmt.Sprintf(":%s", port)
 
 	registers := []Register{
-		{Address: 1, Type: "s16", Unit: "°C", Factor: 10, Mode: "r", Desc: "Outdoor temperature in °C", Name: "outdoor_temperature"},
-		{Address: 5, Type: "s16", Unit: "°C", Factor: 10, Mode: "r", Desc: "Supply temperature in °C", Name: "supply_temperature"},
-		{Address: 7, Type: "s16", Unit: "°C", Factor: 10, Mode: "r", Desc: "Return temperature in °C", Name: "return_temperature"},
-		{Address: 8, Type: "u16", Unit: "°C", Factor: 10, Mode: "r", Desc: "Hot water top in °C", Name: "hotwater_temperature"},
-		{Address: 9, Type: "u16", Unit: "°C", Factor: 10, Mode: "r", Desc: "Hot water charging temperature in °C", Name: "hotwater_charging_temperature"},
-		{Address: 2166, Type: "u32", Unit: "W", Factor: 10, Mode: "r", Desc: "Power usage in Watt", Name: "power_usage"},
+		{Address: 1, Type: "s16", Unit: "°C", Factor: 10, Mode: "r", Desc: "Outdoor temperature in °C", Name: "outdoor_temperature_celsius"},
+		{Address: 5, Type: "s16", Unit: "°C", Factor: 10, Mode: "r", Desc: "Supply temperature in °C", Name: "supply_temperature_celsius"},
+		{Address: 7, Type: "s16", Unit: "°C", Factor: 10, Mode: "r", Desc: "Return temperature in °C", Name: "return_temperature_celsius"},
+		{Address: 8, Type: "u16", Unit: "°C", Factor: 10, Mode: "r", Desc: "Hot water top in °C", Name: "hotwater_top_celsius"},
+		{Address: 9, Type: "u16", Unit: "°C", Factor: 10, Mode: "r", Desc: "Hot water charging temperature in °C", Name: "hotwater_charging_celsius"},
+		{Address: 2166, Type: "u32", Unit: "W", Factor: 10, Mode: "r", Desc: "Power usage in watts", Name: "power_usage_watts"},
 	}
 
 	metrics := make(map[string]prometheus.Gauge)
