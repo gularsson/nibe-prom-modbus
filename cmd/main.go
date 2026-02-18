@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/goburrow/modbus"
@@ -20,7 +19,7 @@ var (
 	host     string
 	port     string
 	path     string
-	interval string
+	interval int
 	prefix   string
 )
 
@@ -69,11 +68,7 @@ func getData(client modbus.Client, reg Register) (float64, error) {
 }
 
 func recordMetrics(ctx context.Context, client modbus.Client, registers []Register, metrics map[string]prometheus.Gauge) {
-	duration, err := strconv.Atoi(interval)
-	if err != nil {
-		slog.Error("could not convert interval to int", "err", err)
-	}
-	ticker := time.NewTicker(time.Duration(duration) * time.Second)
+	ticker := time.NewTicker(time.Duration(interval) * time.Second)
 	defer ticker.Stop()
 
 	for {
@@ -101,7 +96,7 @@ func init() {
 	flag.StringVar(&host, "host", "0.0.0.0", "Heat pump host, assumes port 502")
 	flag.StringVar(&port, "port", "2112", "Metrics port, default 2112")
 	flag.StringVar(&path, "path", "/metrics", "Metrics path, default /metrics")
-	flag.StringVar(&interval, "interval", "30", "Fetch interval, default 30s")
+	flag.IntVar(&interval, "interval", 30, "Fetch interval in seconds, default 30")
 	flag.StringVar(&prefix, "prefix", "nibe", "Prefix for metrics, default nibe")
 
 	flag.Parse()
