@@ -24,7 +24,6 @@ var (
 )
 
 type Register struct {
-	Mode    string
 	Type    string
 	Unit    string
 	Name    string
@@ -33,8 +32,9 @@ type Register struct {
 	Address uint16
 }
 
-func setName(suffix string) string {
-	return fmt.Sprintf("%s_%s", prefix, suffix)
+type registerMetric struct {
+	Register
+	gauge prometheus.Gauge
 }
 
 func getData(client modbus.Client, reg Register) (float64, error) {
@@ -67,28 +67,24 @@ func getData(client modbus.Client, reg Register) (float64, error) {
 	return value / reg.Factor, nil
 }
 
-func recordMetrics(ctx context.Context, handler *modbus.TCPClientHandler, registers []Register, metrics map[string]prometheus.Gauge) {
+func recordMetrics(ctx context.Context, handler *modbus.TCPClientHandler, metrics []registerMetric) {
 	ticker := time.NewTicker(time.Duration(interval) * time.Second)
 	defer ticker.Stop()
 
 	client := modbus.NewClient(handler)
 
 	for {
-		for _, reg := range registers {
-			if gauge, ok := metrics[reg.Name]; ok {
-				value, err := getData(client, reg)
-				if err != nil {
-					slog.Error("failed to read register", "register", reg.Name, "err", err)
-					handler.Close()
-					if err := handler.Connect(); err != nil {
-						slog.Error("failed to reconnect", "err", err)
-					}
-					break
+		for _, m := range metrics {
+			value, err := getData(client, m.Register)
+			if err != nil {
+				slog.Error("failed to read register", "register", m.Name, "err", err)
+				handler.Close()
+				if err := handler.Connect(); err != nil {
+					slog.Error("failed to reconnect", "err", err)
 				}
-				gauge.Set(value)
-			} else {
-				slog.Error("metric not found for register", "register", reg.Name)
+				break
 			}
+			m.gauge.Set(value)
 		}
 		select {
 		case <-ctx.Done():
@@ -113,20 +109,23 @@ func main() {
 	servePort := fmt.Sprintf(":%s", port)
 
 	registers := []Register{
-		{Address: 1, Type: "s16", Unit: "°C", Factor: 10, Mode: "r", Desc: "Outdoor temperature in °C", Name: "outdoor_temperature_celsius"},
-		{Address: 5, Type: "s16", Unit: "°C", Factor: 10, Mode: "r", Desc: "Supply temperature in °C", Name: "supply_temperature_celsius"},
-		{Address: 7, Type: "s16", Unit: "°C", Factor: 10, Mode: "r", Desc: "Return temperature in °C", Name: "return_temperature_celsius"},
-		{Address: 8, Type: "u16", Unit: "°C", Factor: 10, Mode: "r", Desc: "Hot water top in °C", Name: "hotwater_top_celsius"},
-		{Address: 9, Type: "u16", Unit: "°C", Factor: 10, Mode: "r", Desc: "Hot water charging temperature in °C", Name: "hotwater_charging_celsius"},
-		{Address: 2166, Type: "u32", Unit: "W", Factor: 10, Mode: "r", Desc: "Power usage in watts", Name: "power_usage_watts"},
+		{Address: 1, Type: "s16", Unit: "°C", Factor: 10, Desc: "Outdoor temperature in °C", Name: "outdoor_temperature_celsius"},
+		{Address: 5, Type: "s16", Unit: "°C", Factor: 10, Desc: "Supply temperature in °C", Name: "supply_temperature_celsius"},
+		{Address: 7, Type: "s16", Unit: "°C", Factor: 10, Desc: "Return temperature in °C", Name: "return_temperature_celsius"},
+		{Address: 8, Type: "u16", Unit: "°C", Factor: 10, Desc: "Hot water top in °C", Name: "hotwater_top_celsius"},
+		{Address: 9, Type: "u16", Unit: "°C", Factor: 10, Desc: "Hot water charging temperature in °C", Name: "hotwater_charging_celsius"},
+		{Address: 2166, Type: "u32", Unit: "W", Factor: 10, Desc: "Power usage in watts", Name: "power_usage_watts"},
 	}
 
-	metrics := make(map[string]prometheus.Gauge)
-	for _, reg := range registers {
-		metrics[reg.Name] = promauto.NewGauge(prometheus.GaugeOpts{
-			Name: setName(reg.Name),
-			Help: reg.Desc,
-		})
+	metrics := make([]registerMetric, len(registers))
+	for i, reg := range registers {
+		metrics[i] = registerMetric{
+			Register: reg,
+			gauge: promauto.NewGauge(prometheus.GaugeOpts{
+				Name: fmt.Sprintf("%s_%s", prefix, reg.Name),
+				Help: reg.Desc,
+			}),
+		}
 	}
 
 	handler := modbus.NewTCPClientHandler(resourceAddress)
@@ -137,7 +136,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	go recordMetrics(ctx, handler, registers, metrics)
+	go recordMetrics(ctx, handler, metrics)
 
 	http.Handle(path, promhttp.Handler())
 
