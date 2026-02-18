@@ -70,7 +70,7 @@ func getData(client modbus.Client, reg Register) (float64, error) {
 func recordMetrics(client modbus.Client, registers []Register, metrics map[string]prometheus.Gauge) {
 	duration, err := strconv.Atoi(interval)
 	if err != nil {
-		slog.Error("Could not convert interval to int: %s", err)
+		slog.Error("could not convert interval to int", "err", err)
 	}
 	ticker := time.NewTicker(time.Duration(duration) * time.Second)
 	defer ticker.Stop()
@@ -85,7 +85,7 @@ func recordMetrics(client modbus.Client, registers []Register, metrics map[strin
 				}
 				gauge.Set(value)
 			} else {
-				slog.Error("Metric not found for register: %s", reg.Name)
+				slog.Error("metric not found for register", "register", reg.Name)
 			}
 		}
 		<-ticker.C
@@ -129,6 +129,6 @@ func main() {
 	http.Handle(path, promhttp.Handler())
 
 	if err := http.ListenAndServe(servePort, nil); err != nil {
-		slog.Error("Could not start server: %s", err)
+		slog.Error("could not start server", "err", err)
 	}
 }
