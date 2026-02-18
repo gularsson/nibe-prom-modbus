@@ -37,7 +37,7 @@ func setName(suffix string) string {
 	return fmt.Sprintf("%s_%s", prefix, suffix)
 }
 
-func getData(client modbus.Client, reg Register) float64 {
+func getData(client modbus.Client, reg Register) (float64, error) {
 	var result []byte
 	var err error
 
@@ -47,11 +47,11 @@ func getData(client modbus.Client, reg Register) float64 {
 	case "u32":
 		result, err = client.ReadInputRegisters(reg.Address, 2)
 	default:
-		panic("unsupported register type")
+		return 0, fmt.Errorf("unsupported register type: %s", reg.Type)
 	}
 
 	if err != nil {
-		panic(err)
+		return 0, err
 	}
 
 	var value float64
@@ -64,7 +64,7 @@ func getData(client modbus.Client, reg Register) float64 {
 		value = float64(binary.BigEndian.Uint32(result))
 	}
 
-	return value / reg.Factor
+	return value / reg.Factor, nil
 }
 
 func recordMetrics(client modbus.Client, registers []Register, metrics map[string]prometheus.Gauge) {
@@ -78,7 +78,12 @@ func recordMetrics(client modbus.Client, registers []Register, metrics map[strin
 	for {
 		for _, reg := range registers {
 			if gauge, ok := metrics[reg.Name]; ok {
-				gauge.Set(getData(client, reg))
+				value, err := getData(client, reg)
+				if err != nil {
+					slog.Error("failed to read register", "register", reg.Name, "err", err)
+					continue
+				}
+				gauge.Set(value)
 			} else {
 				slog.Error("Metric not found for register: %s", reg.Name)
 			}
