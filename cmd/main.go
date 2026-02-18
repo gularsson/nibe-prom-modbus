@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/binary"
 	"flag"
 	"fmt"
@@ -67,7 +68,7 @@ func getData(client modbus.Client, reg Register) (float64, error) {
 	return value / reg.Factor, nil
 }
 
-func recordMetrics(client modbus.Client, registers []Register, metrics map[string]prometheus.Gauge) {
+func recordMetrics(ctx context.Context, client modbus.Client, registers []Register, metrics map[string]prometheus.Gauge) {
 	duration, err := strconv.Atoi(interval)
 	if err != nil {
 		slog.Error("could not convert interval to int", "err", err)
@@ -88,7 +89,11 @@ func recordMetrics(client modbus.Client, registers []Register, metrics map[strin
 				slog.Error("metric not found for register", "register", reg.Name)
 			}
 		}
-		<-ticker.C
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
 	}
 }
 
@@ -123,8 +128,11 @@ func main() {
 		})
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	client := modbus.TCPClient(resourceAddress)
-	go recordMetrics(client, registers, metrics)
+	go recordMetrics(ctx, client, registers, metrics)
 
 	http.Handle(path, promhttp.Handler())
 
