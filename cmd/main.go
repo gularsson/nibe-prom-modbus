@@ -113,12 +113,42 @@ func main() {
 	servePort := fmt.Sprintf(":%s", port)
 
 	registers := []Register{
-		{Address: 1, Type: "s16", Unit: "°C", Factor: 10, Desc: "Outdoor temperature in °C", Name: "outdoor_temperature_celsius"},
-		{Address: 5, Type: "s16", Unit: "°C", Factor: 10, Desc: "Supply temperature in °C", Name: "supply_temperature_celsius"},
-		{Address: 7, Type: "s16", Unit: "°C", Factor: 10, Desc: "Return temperature in °C", Name: "return_temperature_celsius"},
-		{Address: 8, Type: "u16", Unit: "°C", Factor: 10, Desc: "Hot water top in °C", Name: "hotwater_top_celsius"},
-		{Address: 9, Type: "u16", Unit: "°C", Factor: 10, Desc: "Hot water charging temperature in °C", Name: "hotwater_charging_celsius"},
-		{Address: 2166, Type: "u32", Unit: "W", Factor: 10, Desc: "Power usage in watts", Name: "power_usage_watts"},
+		// Temperatures
+		{Address: 1, Type: "s16", Unit: "°C", Factor: 10, Desc: "Outdoor temperature (BT1)", Name: "outdoor_temperature_celsius"},
+		{Address: 5, Type: "s16", Unit: "°C", Factor: 10, Desc: "Supply line temperature (BT2)", Name: "supply_temperature_celsius"},
+		{Address: 7, Type: "s16", Unit: "°C", Factor: 10, Desc: "Return line temperature (BT3)", Name: "return_temperature_celsius"},
+		{Address: 8, Type: "s16", Unit: "°C", Factor: 10, Desc: "Hot water top (BT7)", Name: "hotwater_top_celsius"},
+		{Address: 9, Type: "s16", Unit: "°C", Factor: 10, Desc: "Hot water charging temperature (BT6)", Name: "hotwater_charging_celsius"},
+		{Address: 10, Type: "s16", Unit: "°C", Factor: 10, Desc: "Brine in (BT10)", Name: "brine_in_celsius"},
+		{Address: 11, Type: "s16", Unit: "°C", Factor: 10, Desc: "Brine out (BT11)", Name: "brine_out_celsius"},
+		{Address: 12, Type: "s16", Unit: "°C", Factor: 10, Desc: "Condenser (BT12)", Name: "condenser_celsius"},
+		{Address: 13, Type: "s16", Unit: "°C", Factor: 10, Desc: "Discharge (BT14)", Name: "discharge_celsius"},
+		{Address: 14, Type: "s16", Unit: "°C", Factor: 10, Desc: "Liquid line (BT15)", Name: "liquid_line_celsius"},
+		{Address: 16, Type: "s16", Unit: "°C", Factor: 10, Desc: "Suction gas (BT17)", Name: "suction_gas_celsius"},
+		{Address: 37, Type: "s16", Unit: "°C", Factor: 10, Desc: "Average outdoor temperature (BT1)", Name: "outdoor_average_celsius"},
+		{Address: 87, Type: "s16", Unit: "°C", Factor: 10, Desc: "Outgoing hot water (BT70)", Name: "hotwater_outgoing_celsius"},
+		{Address: 116, Type: "s16", Unit: "°C", Factor: 10, Desc: "Room temperature climate system 1 (BT50)", Name: "room_celsius"},
+		{Address: 1017, Type: "s16", Unit: "°C", Factor: 10, Desc: "Calculated supply temperature climate system 1", Name: "supply_calculated_celsius"},
+
+		// Flow
+		{Address: 40, Type: "u16", Unit: "l/m", Factor: 10, Desc: "Flow sensor (BF1)", Name: "flow_litres_per_minute"},
+
+		// Compressor operating data
+		{Address: 1041, Type: "s16", Unit: "Hz", Factor: 1, Desc: "Compressor minimum allowed frequency", Name: "compressor_min_frequency_hz"},
+		{Address: 1042, Type: "s16", Unit: "Hz", Factor: 1, Desc: "Compressor maximum allowed frequency", Name: "compressor_max_frequency_hz"},
+		{Address: 1094, Type: "u16", Unit: "", Factor: 1, Desc: "Compressor operating mode", Name: "compressor_operating_mode"},
+		{Address: 1100, Type: "u16", Unit: "", Factor: 1, Desc: "Compressor status", Name: "compressor_status"},
+		{Address: 1102, Type: "u16", Unit: "%", Factor: 1, Desc: "Heating medium pump speed (GP1)", Name: "heating_medium_pump_speed_pct"},
+		{Address: 1104, Type: "u16", Unit: "%", Factor: 1, Desc: "Brine pump speed (GP2)", Name: "brine_pump_speed_pct"},
+
+		// Power
+		{Address: 2166, Type: "u32", Unit: "W", Factor: 10, Desc: "Power usage", Name: "power_usage_watts"},
+		{Address: 2176, Type: "u32", Unit: "W", Factor: 1, Desc: "Current power consumption", Name: "current_power_watts"},
+
+		// Compressor runtimes and starts (EB100-EP14)
+		{Address: 1534, Type: "u32", Unit: "", Factor: 1, Desc: "Compressor total number of starts (EB100-EP14)", Name: "compressor_starts_total"},
+		{Address: 1536, Type: "u32", Unit: "h", Factor: 1, Desc: "Compressor total operating time (EB100-EP14)", Name: "compressor_runtime_total_hours"},
+		{Address: 1538, Type: "u32", Unit: "h", Factor: 1, Desc: "Compressor hot water operating time (EB100-EP14)", Name: "compressor_runtime_hotwater_hours"},
 	}
 
 	handler := modbus.NewTCPClientHandler(resourceAddress)
