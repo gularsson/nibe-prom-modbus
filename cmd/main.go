@@ -145,6 +145,11 @@ func main() {
 		{Address: 2166, Type: "u32", Unit: "W", Factor: 10, Desc: "Power usage", Name: "power_usage_watts"},
 		{Address: 2176, Type: "u32", Unit: "W", Factor: 1, Desc: "Current power consumption", Name: "current_power_watts"},
 
+		// Energy log (updated once per hour)
+		{Address: 2291, Type: "u16", Unit: "kWh", Factor: 100, Desc: "Energy used for heating over the past hour", Name: "heating_energy_kwh"},
+		{Address: 2293, Type: "u16", Unit: "kWh", Factor: 100, Desc: "Energy used for hot water over the past hour", Name: "hotwater_energy_kwh"},
+		{Address: 2305, Type: "u16", Unit: "kWh", Factor: 100, Desc: "Energy consumed in the current hour so far", Name: "current_hour_energy_kwh"},
+
 		// Compressor runtimes and starts (EB100-EP14)
 		{Address: 1534, Type: "u32", Unit: "", Factor: 1, Desc: "Compressor total number of starts (EB100-EP14)", Name: "compressor_starts_total"},
 		{Address: 1536, Type: "u32", Unit: "h", Factor: 1, Desc: "Compressor total operating time (EB100-EP14)", Name: "compressor_runtime_total_hours"},

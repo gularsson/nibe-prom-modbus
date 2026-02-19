@@ -1,0 +1,713 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {"type": "grafana", "uid": "-- Grafana --"},
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Indoor/outdoor temperatures, heat pump power usage, and electricity cost",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Indoor Temperature",
+      "description": "Indoor temperature from Home Assistant",
+      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "blue", "value": null},
+              {"color": "green", "value": 19},
+              {"color": "yellow", "value": 23},
+              {"color": "red", "value": 26}
+            ]
+          },
+          "unit": "celsius",
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "homeassistant_sensor_temperature_celsius{friendly_name=\"Indoor Temperature\"}",
+          "instant": true,
+          "legendFormat": "Indoor",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Outdoor Temperature",
+      "description": "From Home Assistant",
+      "gridPos": {"h": 4, "w": 4, "x": 4, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "super-light-blue", "value": null},
+              {"color": "light-blue", "value": -10},
+              {"color": "blue", "value": 0},
+              {"color": "green", "value": 10},
+              {"color": "yellow", "value": 22},
+              {"color": "orange", "value": 28}
+            ]
+          },
+          "unit": "celsius",
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "homeassistant_sensor_temperature_celsius{friendly_name=\"Outdoor Temperature\"}",
+          "instant": true,
+          "legendFormat": "Outdoor",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Energy This Hour",
+      "description": "Heat pump energy consumed in the current hour so far",
+      "gridPos": {"h": 4, "w": 4, "x": 8, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 2},
+              {"color": "orange", "value": 4},
+              {"color": "red", "value": 6}
+            ]
+          },
+          "unit": "kwatth",
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "nibe_current_hour_energy_kwh",
+          "instant": true,
+          "legendFormat": "Energy",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Electricity Price",
+      "description": "Spot price incl. taxes",
+      "gridPos": {"h": 4, "w": 4, "x": 12, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 1.0},
+              {"color": "orange", "value": 2.0},
+              {"color": "red", "value": 3.0}
+            ]
+          },
+          "unit": "short",
+          "decimals": 2,
+          "displayName": "SEK/kWh",
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "homeassistant_sensor_monetary_sek_per_kwh{friendly_name=\"electricity_price\"}",
+          "instant": true,
+          "legendFormat": "Price",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Cost Last Hour",
+      "description": "Actual electricity cost for the most recently completed hour (heating + hot water)",
+      "gridPos": {"h": 4, "w": 4, "x": 16, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 5.0},
+              {"color": "orange", "value": 10.0},
+              {"color": "red", "value": 20.0}
+            ]
+          },
+          "unit": "short",
+          "decimals": 2,
+          "displayName": "SEK",
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "(nibe_heating_energy_kwh + nibe_hotwater_energy_kwh) * on() group_left() homeassistant_sensor_monetary_sek_per_kwh{friendly_name=\"electricity_price\"}",
+          "instant": true,
+          "legendFormat": "Cost",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Compressor",
+      "description": "Compressor status from heat pump",
+      "gridPos": {"h": 4, "w": 4, "x": 20, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "blue", "value": null},
+              {"color": "green", "value": 1}
+            ]
+          },
+          "unit": "short",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {"color": "blue", "index": 0, "text": "Off"}
+              }
+            },
+            {
+              "type": "value",
+              "options": {
+                "20": {"color": "green", "index": 1, "text": "Running"}
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "nibe_compressor_status",
+          "instant": true,
+          "legendFormat": "Status",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Temperature Comparison",
+      "gridPos": {"h": 9, "w": 24, "x": 0, "y": 4},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 8,
+            "gradientMode": "opacity",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {"group": "A", "mode": "none"},
+            "thresholdsStyle": {"mode": "off"}
+          },
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "celsius"
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "Indoor"},
+            "properties": [{"id": "custom.lineWidth", "value": 3}]
+          },
+          {
+            "matcher": {"id": "byName", "options": "Outdoor"},
+            "properties": [
+              {"id": "custom.lineStyle", "value": {"dash": [10, 10], "fill": "dash"}},
+              {"id": "custom.lineWidth", "value": 2}
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull", "min", "max"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {"mode": "multi", "sort": "none"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "homeassistant_sensor_temperature_celsius{friendly_name=\"Indoor Temperature\"}",
+          "legendFormat": "Indoor",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "homeassistant_sensor_temperature_celsius{friendly_name=\"Outdoor Temperature\"}",
+          "legendFormat": "Outdoor",
+          "refId": "B"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "nibe_outdoor_temperature_celsius",
+          "legendFormat": "Outdoor (Heat Pump BT1)",
+          "refId": "C"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "nibe_supply_temperature_celsius",
+          "legendFormat": "Supply Line",
+          "refId": "D"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "nibe_return_temperature_celsius",
+          "legendFormat": "Return Line",
+          "refId": "E"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "nibe_supply_calculated_celsius",
+          "legendFormat": "Calculated Supply Setpoint",
+          "refId": "F"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Energy per Hour",
+      "description": "kWh consumed per hour by heating and hot water (steps update once per hour)",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 13},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "gradientMode": "none",
+            "lineInterpolation": "stepAfter",
+            "lineWidth": 1,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "kwatth"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull", "mean", "sum"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {"mode": "multi", "sort": "none"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "nibe_heating_energy_kwh",
+          "legendFormat": "Heating",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "nibe_hotwater_energy_kwh",
+          "legendFormat": "Hot Water",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "row",
+      "title": "Cost Summary",
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 21}
+    },
+    {
+      "id": 11,
+      "type": "stat",
+      "title": "Cost Today",
+      "description": "Total heat pump electricity cost since midnight",
+      "timeFrom": "now/d",
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 22},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 20},
+              {"color": "orange", "value": 50},
+              {"color": "red", "value": 100}
+            ]
+          },
+          "unit": "short",
+          "decimals": 2,
+          "displayName": "SEK",
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum_over_time(((nibe_heating_energy_kwh + nibe_hotwater_energy_kwh) * on() group_left() homeassistant_sensor_monetary_sek_per_kwh{friendly_name=\"electricity_price\"})[$__range:1h])",
+          "instant": true,
+          "legendFormat": "Today",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "stat",
+      "title": "Cost This Week",
+      "description": "Total heat pump electricity cost since start of week",
+      "timeFrom": "now/w",
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 22},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 100},
+              {"color": "orange", "value": 300},
+              {"color": "red", "value": 600}
+            ]
+          },
+          "unit": "short",
+          "decimals": 2,
+          "displayName": "SEK",
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum_over_time(((nibe_heating_energy_kwh + nibe_hotwater_energy_kwh) * on() group_left() homeassistant_sensor_monetary_sek_per_kwh{friendly_name=\"electricity_price\"})[$__range:1h])",
+          "instant": true,
+          "legendFormat": "This Week",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "type": "stat",
+      "title": "Cost This Month",
+      "description": "Total heat pump electricity cost since start of month",
+      "timeFrom": "now/M",
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 22},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 400},
+              {"color": "orange", "value": 1200},
+              {"color": "red", "value": 2500}
+            ]
+          },
+          "unit": "short",
+          "decimals": 2,
+          "displayName": "SEK",
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum_over_time(((nibe_heating_energy_kwh + nibe_hotwater_energy_kwh) * on() group_left() homeassistant_sensor_monetary_sek_per_kwh{friendly_name=\"electricity_price\"})[$__range:1h])",
+          "instant": true,
+          "legendFormat": "This Month",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "type": "stat",
+      "title": "Cost This Year",
+      "description": "Total heat pump electricity cost since 1 January",
+      "timeFrom": "now/y",
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 22},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 5000},
+              {"color": "orange", "value": 15000},
+              {"color": "red", "value": 30000}
+            ]
+          },
+          "unit": "short",
+          "decimals": 0,
+          "displayName": "SEK",
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "value_and_name"
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum_over_time(((nibe_heating_energy_kwh + nibe_hotwater_energy_kwh) * on() group_left() homeassistant_sensor_monetary_sek_per_kwh{friendly_name=\"electricity_price\"})[$__range:1h])",
+          "instant": true,
+          "legendFormat": "This Year",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Hourly Cost & Spot Price",
+      "description": "Actual electricity cost per hour (heating + hot water) × spot price",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 13},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "gradientMode": "none",
+            "lineInterpolation": "stepAfter",
+            "lineWidth": 1,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "decimals": 2,
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]},
+          "unit": "short",
+          "displayName": "SEK"
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "Spot Price (SEK/kWh)"},
+            "properties": [
+              {"id": "custom.axisPlacement", "value": "right"},
+              {"id": "displayName", "value": "SEK/kWh"},
+              {"id": "custom.drawStyle", "value": "line"},
+              {"id": "custom.lineStyle", "value": {"dash": [4, 4], "fill": "dash"}},
+              {"id": "custom.fillOpacity", "value": 0},
+              {"id": "custom.lineWidth", "value": 2}
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull", "mean", "sum"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {"mode": "multi", "sort": "none"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "(nibe_heating_energy_kwh + nibe_hotwater_energy_kwh) * on() group_left() homeassistant_sensor_monetary_sek_per_kwh{friendly_name=\"electricity_price\"}",
+          "legendFormat": "Cost (SEK)",
+          "refId": "A"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "homeassistant_sensor_monetary_sek_per_kwh{friendly_name=\"electricity_price\"}",
+          "legendFormat": "Spot Price (SEK/kWh)",
+          "refId": "B"
+        }
+      ]
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 39,
+  "tags": ["nibe", "heat-pump", "energy"],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "label": "Data Source",
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "type": "datasource"
+      }
+    ]
+  },
+  "time": {"from": "now-24h", "to": "now"},
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Heat Pump — Overview",
+  "uid": "nibe-overview",
+  "version": 1,
+  "weekStart": ""
+}
