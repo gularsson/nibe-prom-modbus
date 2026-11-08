@@ -241,11 +241,13 @@ func main() {
 		{Address: 1583, Type: "u32", Unit: "kWh", Factor: 10, Counter: true, Desc: "Heat produced for hot water, compressor only", Name: "energy_produced_hotwater_compressor_kwh_total"},
 		{Address: 1585, Type: "u32", Unit: "kWh", Factor: 10, Counter: true, Desc: "Heat produced for heating, compressor only", Name: "energy_produced_heating_compressor_kwh_total"},
 
-		// Energy log (updated once per hour). NOT in Nibe's Modbus manual;
-		// kept until the meters above are cross-checked, then to be removed.
-		{Address: 2291, Type: "u16", Unit: "kWh", Factor: 100, Desc: "Energy used for heating over the past hour (unverified register)", Name: "heating_energy_kwh"},
-		{Address: 2293, Type: "u16", Unit: "kWh", Factor: 100, Desc: "Energy used for hot water over the past hour (unverified register)", Name: "hotwater_energy_kwh"},
-		{Address: 2305, Type: "u16", Unit: "kWh", Factor: 100, Desc: "Energy consumed in the current hour so far (unverified register)", Name: "current_hour_energy_kwh"},
+		// Energy log: ELECTRICITY used, updated once per hour. Not in Nibe's
+		// Modbus manual, but cross-checked on an S1255 (2026-11-08): over 7
+		// days, heating + hot water = 133.4 kWh against 131.5 kWh from
+		// integrating power_usage_watts. The only per-use electricity split.
+		{Address: 2291, Type: "u16", Unit: "kWh", Factor: 100, Desc: "Electricity used for heating over the past hour", Name: "heating_energy_kwh"},
+		{Address: 2293, Type: "u16", Unit: "kWh", Factor: 100, Desc: "Electricity used for hot water over the past hour", Name: "hotwater_energy_kwh"},
+		{Address: 2305, Type: "u16", Unit: "kWh", Factor: 100, Desc: "Electricity used in the current hour so far", Name: "current_hour_energy_kwh"},
 
 		// Compressor runtimes and starts (EB100-EP14)
 		{Address: 1534, Type: "u32", Unit: "", Factor: 1, Counter: true, Desc: "Compressor total number of starts (EB100-EP14)", Name: "compressor_starts_total"},

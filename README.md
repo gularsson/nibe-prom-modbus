@@ -161,14 +161,16 @@ measurement* registers) — not electricity consumed. Cumulative counters.
 The manual labels 1577 only "compressor incl. add."; on an S1255 it reads
 just above 1585, so it is heating including additional heat.
 
-Hourly energy log — **these registers are not in Nibe's Modbus manual**, so
-treat them as unverified. Kept for cross-checking against the counters above:
+Hourly energy log — **electricity used**, updated once per hour. These
+registers are not in Nibe's Modbus manual, but on an S1255 they agree with
+`nibe_power_usage_watts` integrated over 7 days to within ~2% (133.4 vs
+131.5 kWh). They are the only per-use electricity split:
 
 | Metric | Modbus address | Description |
 |--------|---------------|-------------|
-| `nibe_heating_energy_kwh` | 2291 | Energy used for heating over the past hour |
-| `nibe_hotwater_energy_kwh` | 2293 | Energy used for hot water over the past hour |
-| `nibe_current_hour_energy_kwh` | 2305 | Energy consumed in the current hour so far |
+| `nibe_heating_energy_kwh` | 2291 | Electricity used for heating over the past hour |
+| `nibe_hotwater_energy_kwh` | 2293 | Electricity used for hot water over the past hour |
+| `nibe_current_hour_energy_kwh` | 2305 | Electricity used in the current hour so far |
 
 ## Grafana Dashboards
 
