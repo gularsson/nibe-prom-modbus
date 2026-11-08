@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/binary"
+	"errors"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -20,13 +21,21 @@ var (
 	prefix string
 )
 
+// Register is one Nibe Modbus register to export. Addresses, types and factors
+// come from the "Common registers" table of nibe_manual_en.pdf.
 type Register struct {
-	Type    string
+	Type    string // u8, u16, s16, u32, s32
 	Unit    string
 	Name    string
 	Desc    string
 	Factor  float64
 	Address uint16
+	// Holding selects FC03 (holding register) instead of FC04 (input register).
+	// Many holding registers are R/W on the pump; this exporter only ever READS
+	// them. Never add a write call here.
+	Holding bool
+	// Counter exports the value as a Prometheus counter (monotonic total).
+	Counter bool
 }
 
 type nibeCollector struct {
@@ -57,6 +66,17 @@ func (c *nibeCollector) Collect(ch chan<- prometheus.Metric) {
 	client := modbus.NewClient(c.handler)
 	for i, reg := range c.registers {
 		value, err := getData(client, reg)
+		if errors.Is(err, errSensorAbsent) {
+			continue
+		}
+		var exc *modbus.ModbusError
+		if errors.As(err, &exc) {
+			// The pump answered but refused this register (e.g. illegal
+			// function/address). The connection is fine: skip just this one,
+			// rather than dropping every register after it from the scrape.
+			slog.Warn("pump rejected register", "register", reg.Name, "address", reg.Address, "err", err)
+			continue
+		}
 		if err != nil {
 			slog.Error("failed to read register", "register", reg.Name, "err", err)
 			c.handler.Close()
@@ -65,50 +85,96 @@ func (c *nibeCollector) Collect(ch chan<- prometheus.Metric) {
 			}
 			break
 		}
-		ch <- prometheus.MustNewConstMetric(c.descs[i], prometheus.GaugeValue, value)
+		valueType := prometheus.GaugeValue
+		if reg.Counter {
+			valueType = prometheus.CounterValue
+		}
+		ch <- prometheus.MustNewConstMetric(c.descs[i], valueType, value)
 	}
 }
 
-func getData(client modbus.Client, reg Register) (float64, error) {
-	var result []byte
-	var err error
-
-	switch reg.Type {
-	case "u16", "s16":
-		result, err = client.ReadInputRegisters(reg.Address, 1)
-	case "u32":
-		result, err = client.ReadInputRegisters(reg.Address, 2)
-	default:
-		return 0, fmt.Errorf("unsupported register type: %s", reg.Type)
+// registerCount returns how many 16-bit Modbus registers a type occupies.
+func registerCount(typ string) (uint16, error) {
+	switch typ {
+	case "u8", "u16", "s16":
+		return 1, nil
+	case "u32", "s32":
+		return 2, nil
 	}
+	return 0, fmt.Errorf("unsupported register type: %s", typ)
+}
 
+// decode converts raw register bytes to a number, before the scale factor.
+//
+// Each 16-bit register is big-endian, but Nibe sends 32-bit values LOW WORD
+// FIRST. Decoding them as one big-endian uint32 -- which this exporter did
+// until 2026-11 -- multiplies every value below 65536 by exactly 65536.
+func decode(typ string, b []byte) (float64, error) {
+	n, err := registerCount(typ)
+	if err != nil {
+		return 0, err
+	}
+	if len(b) < int(n)*2 {
+		return 0, fmt.Errorf("%s needs %d bytes, got %d", typ, n*2, len(b))
+	}
+	switch typ {
+	case "u8", "u16":
+		return float64(binary.BigEndian.Uint16(b)), nil
+	case "s16":
+		return float64(int16(binary.BigEndian.Uint16(b))), nil
+	}
+	u := uint32(binary.BigEndian.Uint16(b[2:4]))<<16 | uint32(binary.BigEndian.Uint16(b[0:2]))
+	if typ == "s32" {
+		return float64(int32(u)), nil
+	}
+	return float64(u), nil
+}
+
+func getData(client modbus.Client, reg Register) (float64, error) {
+	n, err := registerCount(reg.Type)
 	if err != nil {
 		return 0, err
 	}
 
-	var value float64
-	switch reg.Type {
-	case "u16":
-		value = float64(binary.BigEndian.Uint16(result))
-	case "s16":
-		value = float64(int16(binary.BigEndian.Uint16(result)))
-	case "u32":
-		value = float64(binary.BigEndian.Uint32(result))
+	var result []byte
+	if reg.Holding {
+		result, err = client.ReadHoldingRegisters(reg.Address, n)
+	} else {
+		result, err = client.ReadInputRegisters(reg.Address, n)
+	}
+	if err != nil {
+		return 0, err
 	}
 
+	value, err := decode(reg.Type, result)
+	if err != nil {
+		return 0, err
+	}
+	if reg.Type == "s16" && value == sensorAbsent {
+		return 0, errSensorAbsent
+	}
 	return value / reg.Factor, nil
 }
+
+// Nibe reports an unconnected sensor as s16 0x8000 (-32768, i.e. -3276.8 °C
+// after the factor). Exporting it would plot as a real, absurd temperature, so
+// the series is omitted instead.
+const sensorAbsent = -32768
+
+var errSensorAbsent = errors.New("sensor not connected")
 
 func init() {
 	flag.StringVar(&host, "host", "0.0.0.0", "Heat pump host, assumes port 502")
 	flag.StringVar(&port, "port", "2112", "Metrics port, default 2112")
 	flag.StringVar(&path, "path", "/metrics", "Metrics path, default /metrics")
 	flag.StringVar(&prefix, "prefix", "nibe", "Prefix for metrics, default nibe")
-
-	flag.Parse()
 }
 
 func main() {
+	// Parsed here, not in init(): parsing in init() also ran under `go test`
+	// and rejected the test binary's own -test.* flags.
+	flag.Parse()
+
 	resourceAddress := fmt.Sprintf("%s:502", host)
 	servePort := fmt.Sprintf(":%s", port)
 
@@ -141,17 +207,48 @@ func main() {
 		{Address: 1102, Type: "u16", Unit: "%", Factor: 1, Desc: "Heating medium pump speed (GP1)", Name: "heating_medium_pump_speed_pct"},
 		{Address: 1104, Type: "u16", Unit: "%", Factor: 1, Desc: "Brine pump speed (GP2)", Name: "brine_pump_speed_pct"},
 
-		// Power
-		{Address: 2166, Type: "u32", Unit: "W", Factor: 10, Desc: "Power usage", Name: "power_usage_watts"},
-		{Address: 2176, Type: "u32", Unit: "W", Factor: 1, Desc: "Current power consumption", Name: "current_power_watts"},
+		// Operating state
+		{Address: 1028, Type: "u8", Unit: "", Factor: 1, Desc: "Operating prioritisation (10 off, 20 hot water, 30 heat, 40 pool, 60 cooling)", Name: "operating_prioritisation"},
 
-		// Energy log (updated once per hour)
-		{Address: 2291, Type: "u16", Unit: "kWh", Factor: 100, Desc: "Energy used for heating over the past hour", Name: "heating_energy_kwh"},
-		{Address: 2293, Type: "u16", Unit: "kWh", Factor: 100, Desc: "Energy used for hot water over the past hour", Name: "hotwater_energy_kwh"},
-		{Address: 2305, Type: "u16", Unit: "kWh", Factor: 100, Desc: "Energy consumed in the current hour so far", Name: "current_hour_energy_kwh"},
+		// Degree minutes (holding register, READ ONLY): the heat-balance
+		// integral the pump regulates on. The start thresholds for compressor
+		// (reg 97) and additional heat (reg 679) are listed in the manual but
+		// an S1255 answers both with "illegal function" -- read them from the
+		// pump's menu instead.
+		{Address: 11, Holding: true, Type: "s32", Unit: "DM", Factor: 10, Desc: "Degree minutes", Name: "degree_minutes"},
+
+		// Additional heat (internal immersion heater)
+		{Address: 1029, Type: "u8", Unit: "", Factor: 1, Desc: "Additional heat steps currently active", Name: "additional_heat_steps"},
+		{Address: 1025, Type: "s32", Unit: "h", Factor: 10, Desc: "Total run time additional heat", Name: "additional_heat_runtime_hours"},
+
+		// Power
+		// The manual gives 2166 a factor of 10, but on an S1255 the raw value
+		// is already watts: with /10 the 15-day median was 69 W and the peak
+		// 278 W against ~2.9 kW average heat output (COP > 40). With factor 1
+		// the median is 692 W, matching the hourly energy log (~0.9 kWh/h).
+		{Address: 2166, Type: "u32", Unit: "W", Factor: 1, Desc: "Instantaneous used power, compressor and additional heat", Name: "power_usage_watts"},
+		// Reads 0 on an S1255 at all times (15-day max 0). Kept so the series
+		// does not silently vanish from existing dashboards; do not use it.
+		{Address: 2176, Type: "u32", Unit: "W", Factor: 1, Desc: "Current power (always 0 on S1255; use power_usage_watts)", Name: "current_power_watts"},
+
+		// Energy meters: the manual's "Flow measurement" registers, i.e. heat
+		// energy measured via the flow sensor -- PRODUCED heat, not electricity
+		// consumed. Cumulative, so robust to scrape gaps. The manual labels
+		// 1577 only "compressor incl. add."; on an S1255 it reads 11.5 kWh above
+		// 1585 (heating, compressor only), so it is heating incl. add. heat.
+		{Address: 1575, Type: "u32", Unit: "kWh", Factor: 10, Counter: true, Desc: "Heat produced for hot water, compressor incl. additional heat", Name: "energy_produced_hotwater_kwh_total"},
+		{Address: 1577, Type: "u32", Unit: "kWh", Factor: 10, Counter: true, Desc: "Heat produced for heating, compressor incl. additional heat", Name: "energy_produced_heating_kwh_total"},
+		{Address: 1583, Type: "u32", Unit: "kWh", Factor: 10, Counter: true, Desc: "Heat produced for hot water, compressor only", Name: "energy_produced_hotwater_compressor_kwh_total"},
+		{Address: 1585, Type: "u32", Unit: "kWh", Factor: 10, Counter: true, Desc: "Heat produced for heating, compressor only", Name: "energy_produced_heating_compressor_kwh_total"},
+
+		// Energy log (updated once per hour). NOT in Nibe's Modbus manual;
+		// kept until the meters above are cross-checked, then to be removed.
+		{Address: 2291, Type: "u16", Unit: "kWh", Factor: 100, Desc: "Energy used for heating over the past hour (unverified register)", Name: "heating_energy_kwh"},
+		{Address: 2293, Type: "u16", Unit: "kWh", Factor: 100, Desc: "Energy used for hot water over the past hour (unverified register)", Name: "hotwater_energy_kwh"},
+		{Address: 2305, Type: "u16", Unit: "kWh", Factor: 100, Desc: "Energy consumed in the current hour so far (unverified register)", Name: "current_hour_energy_kwh"},
 
 		// Compressor runtimes and starts (EB100-EP14)
-		{Address: 1534, Type: "u32", Unit: "", Factor: 1, Desc: "Compressor total number of starts (EB100-EP14)", Name: "compressor_starts_total"},
+		{Address: 1534, Type: "u32", Unit: "", Factor: 1, Counter: true, Desc: "Compressor total number of starts (EB100-EP14)", Name: "compressor_starts_total"},
 		{Address: 1536, Type: "u32", Unit: "h", Factor: 1, Desc: "Compressor total operating time (EB100-EP14)", Name: "compressor_runtime_total_hours"},
 		{Address: 1538, Type: "u32", Unit: "h", Factor: 1, Desc: "Compressor hot water operating time (EB100-EP14)", Name: "compressor_runtime_hotwater_hours"},
 	}

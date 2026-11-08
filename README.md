@@ -61,7 +61,16 @@ scrape_configs:
 
 ## Metrics
 
-All metrics are exposed as Prometheus gauges under the `nibe_` prefix (configurable via `--prefix`).
+All metrics use the `nibe_` prefix (configurable via `--prefix`). They are
+gauges, except the `*_total` metrics, which are counters.
+
+- **32-bit values are sent low word first.** Before 2026-11 the exporter decoded
+  them big-endian, so every u32 metric read exactly 65 536× too high.
+- **Unconnected sensors are omitted.** Nibe reports them as -3276.8 °C (s16
+  0x8000); no series is exported rather than a fake temperature.
+- **Holding registers are only read, never written.**
+- A register the pump refuses (Modbus exception) is skipped and logged; the
+  rest of the scrape continues.
 
 ### Temperatures
 
@@ -72,10 +81,10 @@ All metrics are exposed as Prometheus gauges under the `nibe_` prefix (configura
 | `nibe_supply_temperature_celsius` | 5 | Supply line temperature (BT2) |
 | `nibe_return_temperature_celsius` | 7 | Return line temperature (BT3) |
 | `nibe_supply_calculated_celsius` | 1017 | Calculated supply temperature climate system 1 |
-| `nibe_room_celsius` | 116 | Room temperature climate system 1 (BT50) |
+| `nibe_room_celsius` | 116 | Room temperature climate system 1 (BT50). Absent if no BT50 is fitted |
 | `nibe_hotwater_top_celsius` | 8 | Hot water top (BT7) |
 | `nibe_hotwater_charging_celsius` | 9 | Hot water charging temperature (BT6) |
-| `nibe_hotwater_outgoing_celsius` | 87 | Outgoing hot water (BT70) |
+| `nibe_hotwater_outgoing_celsius` | 87 | Outgoing hot water (BT70). Absent if not fitted |
 | `nibe_brine_in_celsius` | 10 | Brine in (BT10) |
 | `nibe_brine_out_celsius` | 11 | Brine out (BT11) |
 | `nibe_condenser_celsius` | 12 | Condenser temperature (BT12) |
@@ -100,6 +109,24 @@ All metrics are exposed as Prometheus gauges under the `nibe_` prefix (configura
 | `nibe_compressor_starts_total` | 1534 | Total number of compressor starts (EB100-EP14) |
 | `nibe_compressor_runtime_total_hours` | 1536 | Total compressor operating time (EB100-EP14) |
 | `nibe_compressor_runtime_hotwater_hours` | 1538 | Compressor hot water operating time (EB100-EP14) |
+| `nibe_operating_prioritisation` | 1028 | 10 off, 20 hot water, 30 heat, 40 pool, 60 cooling |
+
+### Degree minutes
+
+| Metric | Modbus address | Description |
+|--------|---------------|-------------|
+| `nibe_degree_minutes` | 11 (holding) | Degree minutes, the heat-balance integral the pump regulates on |
+
+The start thresholds for compressor (holding 97) and additional heat (holding
+679) are in the manual but an S1255 rejects both with *illegal function*; read
+them from the pump's menu.
+
+### Additional heat
+
+| Metric | Modbus address | Description |
+|--------|---------------|-------------|
+| `nibe_additional_heat_steps` | 1029 | Additional heat steps currently active |
+| `nibe_additional_heat_runtime_hours` | 1025 | Total run time additional heat |
 
 ### Pumps
 
@@ -112,8 +139,36 @@ All metrics are exposed as Prometheus gauges under the `nibe_` prefix (configura
 
 | Metric | Modbus address | Description |
 |--------|---------------|-------------|
-| `nibe_power_usage_watts` | 2166 | Power usage |
-| `nibe_current_power_watts` | 2176 | Current power consumption |
+| `nibe_power_usage_watts` | 2166 | Instantaneous used power, compressor and additional heat |
+| `nibe_current_power_watts` | 2176 | Current power. **Always 0 on an S1255** — use `nibe_power_usage_watts` |
+
+The manual gives 2166 a factor of 10. On an S1255 the raw value is already
+watts: with ÷10 the 15-day median was 69 W against ~2.9 kW of heat output. With
+factor 1 it matches the hourly energy log (~0.9 kWh/h at ~880 W).
+
+### Energy
+
+Heat **produced**, measured via the flow sensor (the manual's *Flow
+measurement* registers) — not electricity consumed. Cumulative counters.
+
+| Metric | Modbus address | Description |
+|--------|---------------|-------------|
+| `nibe_energy_produced_heating_kwh_total` | 1577 | Heating, compressor incl. additional heat |
+| `nibe_energy_produced_heating_compressor_kwh_total` | 1585 | Heating, compressor only |
+| `nibe_energy_produced_hotwater_kwh_total` | 1575 | Hot water, compressor incl. additional heat |
+| `nibe_energy_produced_hotwater_compressor_kwh_total` | 1583 | Hot water, compressor only |
+
+The manual labels 1577 only "compressor incl. add."; on an S1255 it reads
+just above 1585, so it is heating including additional heat.
+
+Hourly energy log — **these registers are not in Nibe's Modbus manual**, so
+treat them as unverified. Kept for cross-checking against the counters above:
+
+| Metric | Modbus address | Description |
+|--------|---------------|-------------|
+| `nibe_heating_energy_kwh` | 2291 | Energy used for heating over the past hour |
+| `nibe_hotwater_energy_kwh` | 2293 | Energy used for hot water over the past hour |
+| `nibe_current_hour_energy_kwh` | 2305 | Energy consumed in the current hour so far |
 
 ## Grafana Dashboards
 
