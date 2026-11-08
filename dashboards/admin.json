@@ -460,7 +460,7 @@
       "targets": [
         {
           "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "nibe_current_power_watts",
+          "expr": "nibe_power_usage_watts",
           "legendFormat": "Current Power",
           "refId": "A"
         }
@@ -519,7 +519,7 @@
         },
         {
           "datasource": {"type": "prometheus", "uid": "${datasource}"},
-          "expr": "nibe_flow_litres_per_minute * 69.77 * (nibe_supply_temperature_celsius - nibe_return_temperature_celsius) / nibe_current_power_watts",
+          "expr": "nibe_flow_litres_per_minute * 69.77 * (nibe_supply_temperature_celsius - nibe_return_temperature_celsius) / (nibe_power_usage_watts > 100)",
           "legendFormat": "COP",
           "refId": "B"
         }
