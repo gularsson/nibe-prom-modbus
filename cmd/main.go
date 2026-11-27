@@ -24,7 +24,7 @@ var (
 // Register is one Nibe Modbus register to export. Addresses, types and factors
 // come from the "Common registers" table of nibe_manual_en.pdf.
 type Register struct {
-	Type    string // u8, u16, s16, u32, s32
+	Type    string // u8, s8, u16, s16, u32, s32
 	Unit    string
 	Name    string
 	Desc    string
@@ -96,7 +96,7 @@ func (c *nibeCollector) Collect(ch chan<- prometheus.Metric) {
 // registerCount returns how many 16-bit Modbus registers a type occupies.
 func registerCount(typ string) (uint16, error) {
 	switch typ {
-	case "u8", "u16", "s16":
+	case "u8", "s8", "u16", "s16":
 		return 1, nil
 	case "u32", "s32":
 		return 2, nil
@@ -122,6 +122,10 @@ func decode(typ string, b []byte) (float64, error) {
 		return float64(binary.BigEndian.Uint16(b)), nil
 	case "s16":
 		return float64(int16(binary.BigEndian.Uint16(b))), nil
+	case "s8":
+		// An 8-bit value in a 16-bit register: the low byte, signed. Taking
+		// only the low byte is right whether or not the pump sign-extends.
+		return float64(int8(b[1])), nil
 	}
 	u := uint32(binary.BigEndian.Uint16(b[2:4]))<<16 | uint32(binary.BigEndian.Uint16(b[0:2]))
 	if typ == "s32" {
@@ -216,6 +220,9 @@ func main() {
 		// an S1255 answers both with "illegal function" -- read them from the
 		// pump's menu instead.
 		{Address: 11, Holding: true, Type: "s32", Unit: "DM", Factor: 10, Desc: "Degree minutes", Name: "degree_minutes"},
+
+		// Hot water demand (holding register, READ ONLY): menu 2.2.
+		{Address: 56, Holding: true, Type: "s8", Unit: "", Factor: 1, Desc: "Hot water demand (0 small, 1 medium, 2 large, 3 not in use, 4 smart control)", Name: "hotwater_demand"},
 
 		// Additional heat (internal immersion heater)
 		{Address: 1029, Type: "u8", Unit: "", Factor: 1, Desc: "Additional heat steps currently active", Name: "additional_heat_steps"},

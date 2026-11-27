@@ -23,6 +23,10 @@ func TestDecode(t *testing.T) {
 		{"s16 negative", "s16", []byte{0xFF, 0x9C}, -100},
 		// u8 values occupy a full 16-bit register.
 		{"u8", "u8", []byte{0x00, 0x03}, 3},
+		// s8: low byte, signed, whether or not the high byte is sign-extended.
+		{"s8 positive", "s8", []byte{0x00, 0x04}, 4},
+		{"s8 negative sign-extended", "s8", []byte{0xFF, 0xFE}, -2},
+		{"s8 negative not extended", "s8", []byte{0x00, 0xFE}, -2},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -44,7 +48,7 @@ func TestDecodeRejectsShortInput(t *testing.T) {
 }
 
 func TestRegisterCount(t *testing.T) {
-	for typ, want := range map[string]uint16{"u8": 1, "u16": 1, "s16": 1, "u32": 2, "s32": 2} {
+	for typ, want := range map[string]uint16{"u8": 1, "s8": 1, "u16": 1, "s16": 1, "u32": 2, "s32": 2} {
 		got, err := registerCount(typ)
 		if err != nil || got != want {
 			t.Errorf("registerCount(%q) = %d, %v; want %d", typ, got, err, want)
