@@ -110,6 +110,7 @@ gauges, except the `*_total` metrics, which are counters.
 | `nibe_compressor_runtime_total_hours` | 1536 | Total compressor operating time (EB100-EP14) |
 | `nibe_compressor_runtime_hotwater_hours` | 1538 | Compressor hot water operating time (EB100-EP14) |
 | `nibe_operating_prioritisation` | 1028 | 10 off, 20 hot water, 30 heat, 40 pool, 60 cooling |
+| `nibe_hotwater_demand` | 56 (holding) | Hot water demand, menu 2.2: 0 small, 1 medium, 2 large, 3 not in use, 4 smart control |
 
 ### Degree minutes
 
