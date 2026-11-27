@@ -223,18 +223,17 @@ func main() {
 
 		// Power
 		// The manual gives 2166 a factor of 10, but on an S1255 the raw value
-		// is already watts: with /10 the 15-day median was 69 W and the peak
-		// 278 W against ~2.9 kW average heat output (COP > 40). With factor 1
-		// the median is 692 W, matching the hourly energy log (~0.9 kWh/h).
+		// is already watts: with /10 the implied COP is over 40. With factor 1
+		// it matches the hourly energy log.
 		{Address: 2166, Type: "u32", Unit: "W", Factor: 1, Desc: "Instantaneous used power, compressor and additional heat", Name: "power_usage_watts"},
-		// Reads 0 on an S1255 at all times (15-day max 0). Kept so the series
+		// Reads 0 on an S1255 at all times. Kept so the series
 		// does not silently vanish from existing dashboards; do not use it.
 		{Address: 2176, Type: "u32", Unit: "W", Factor: 1, Desc: "Current power (always 0 on S1255; use power_usage_watts)", Name: "current_power_watts"},
 
 		// Energy meters: the manual's "Flow measurement" registers, i.e. heat
 		// energy measured via the flow sensor -- PRODUCED heat, not electricity
 		// consumed. Cumulative, so robust to scrape gaps. The manual labels
-		// 1577 only "compressor incl. add."; on an S1255 it reads 11.5 kWh above
+		// 1577 only "compressor incl. add."; on an S1255 it reads slightly above
 		// 1585 (heating, compressor only), so it is heating incl. add. heat.
 		{Address: 1575, Type: "u32", Unit: "kWh", Factor: 10, Counter: true, Desc: "Heat produced for hot water, compressor incl. additional heat", Name: "energy_produced_hotwater_kwh_total"},
 		{Address: 1577, Type: "u32", Unit: "kWh", Factor: 10, Counter: true, Desc: "Heat produced for heating, compressor incl. additional heat", Name: "energy_produced_heating_kwh_total"},
@@ -242,9 +241,9 @@ func main() {
 		{Address: 1585, Type: "u32", Unit: "kWh", Factor: 10, Counter: true, Desc: "Heat produced for heating, compressor only", Name: "energy_produced_heating_compressor_kwh_total"},
 
 		// Energy log: ELECTRICITY used, updated once per hour. Not in Nibe's
-		// Modbus manual, but cross-checked on an S1255 (2026-11-08): over 7
-		// days, heating + hot water = 133.4 kWh against 131.5 kWh from
-		// integrating power_usage_watts. The only per-use electricity split.
+		// Modbus manual, but cross-checked on an S1255: over a week, heating + hot
+		// water agree within ~2% with integrating power_usage_watts. The only
+		// per-use electricity split.
 		{Address: 2291, Type: "u16", Unit: "kWh", Factor: 100, Desc: "Electricity used for heating over the past hour", Name: "heating_energy_kwh"},
 		{Address: 2293, Type: "u16", Unit: "kWh", Factor: 100, Desc: "Electricity used for hot water over the past hour", Name: "hotwater_energy_kwh"},
 		{Address: 2305, Type: "u16", Unit: "kWh", Factor: 100, Desc: "Electricity used in the current hour so far", Name: "current_hour_energy_kwh"},

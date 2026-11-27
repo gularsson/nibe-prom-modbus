@@ -143,8 +143,8 @@ them from the pump's menu.
 | `nibe_current_power_watts` | 2176 | Current power. **Always 0 on an S1255** — use `nibe_power_usage_watts` |
 
 The manual gives 2166 a factor of 10. On an S1255 the raw value is already
-watts: with ÷10 the 15-day median was 69 W against ~2.9 kW of heat output. With
-factor 1 it matches the hourly energy log (~0.9 kWh/h at ~880 W).
+watts: with ÷10 the implied COP is an impossible ~40. With factor 1 it matches
+the hourly energy log.
 
 ### Energy
 
@@ -163,8 +163,8 @@ just above 1585, so it is heating including additional heat.
 
 Hourly energy log — **electricity used**, updated once per hour. These
 registers are not in Nibe's Modbus manual, but on an S1255 they agree with
-`nibe_power_usage_watts` integrated over 7 days to within ~2% (133.4 vs
-131.5 kWh). They are the only per-use electricity split:
+`nibe_power_usage_watts` integrated over a week to within ~2%. They are the only per-use
+electricity split:
 
 | Metric | Modbus address | Description |
 |--------|---------------|-------------|
